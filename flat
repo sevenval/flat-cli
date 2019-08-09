@@ -64,7 +64,11 @@ case "$1" in
 		;;
 esac
 
-
+if [[ -z $cmd ]]; then
+	echo missing command >&2
+	usage
+	exit 64
+fi
 
 while getopts hp:d:a opt; do
   case ${opt} in
