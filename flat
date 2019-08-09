@@ -1,0 +1,156 @@
+#! /usr/bin/env bash
+
+set -e
+
+IMAGE=sevenvaltechnologies/flatrunner
+
+usage() {
+  cat <<EOF
+Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ -a ] [ DIRECTORY ]
+
+commands:
+
+start             start flat (uses -p, -d, -a and DIRECTORY)
+stop              stop a running flat instance (uses -p and DIRECTORY)
+pull              pull latest flatrunner docker image and exit
+check-template    check a template from the command line
+
+start params:
+-p      Listen port, default: 8080
+-d      Debug parameters, default: *:error:log
+-a      Output access logs in addition to error logs
+DIR     FLAT app directory, default: .
+
+stop params:
+-p      Listen port, default: 8080
+DIR     FLAT app directory, default: .
+
+check-template params:
+FILE    template file
+
+EOF
+}
+
+realDir() {
+	if cd "$1" 2>/dev/null; then
+		pwd
+		cd - >/dev/null
+	else
+		echo "Directory '$1' not found or unreadable" >&2
+		exit 66
+	fi
+}
+
+if [[ -z "${TAG}" ]]; then
+  TAG=latest
+fi
+
+port=8080
+access=
+cmd=
+
+case "$1" in
+	stop) cmd=stop; shift ;;
+	start) cmd=start; shift ;;
+	pull) exec docker pull ${IMAGE}:${TAG};;
+	check-template)
+		file="${2:?"template file missing"}"
+		if [[ -f $file ]]; then
+			exec docker run --rm -i -v "$(cd "$(dirname "$file")" && pwd)/$(basename "$file")":/template --entrypoint flat-template ${IMAGE}:${TAG} --check /template
+		else
+			echo "template file $file not found" >&2
+			exit 66
+		fi
+		;;
+esac
+
+
+
+while getopts hp:d:a opt; do
+  case ${opt} in
+    p)
+       port="$OPTARG"
+       if ! [[  $port =~ ^[0-9]+$ ]]; then
+         echo Port must be a positive decimal number >&2
+         exit 64
+       fi
+    ;;
+    a) access=1
+    ;;
+	d)
+		FLAT_DEBUG="$OPTARG"
+	;;
+    h)
+      usage
+      exit
+    ;;
+    *)
+      usage
+      exit 64
+  esac
+done
+
+shift $((OPTIND-1))
+
+if [[ "$#" = 0 ]]; then
+  DIR="`pwd`"
+elif [[ "$#" != 1 ]]; then
+  usage
+  exit 66
+else
+  DIR="`realDir "$1"`"
+fi
+DOCKERNAME="flat-$(basename "$DIR" | tr -cd '[a-zA-Z0-9-_]')-$port"
+
+if [[ $cmd == stop ]]; then
+	echo "stopping flat instance ${DOCKERNAME}"
+	exec docker stop ${DOCKERNAME} > /dev/null
+fi
+
+if [[ -f "$DIR"/conf/config.xml ]]; then
+  SITE_VOLUME=( -v "${DIR}":/app:cached )
+  echo "Using site directory: $DIR"
+else
+  echo "No FLAT site found in $DIR: create conf/config.xml to start"
+  exit 67
+fi
+
+if [[ -n ${access} ]]; then
+	LOG_ARGS=(--attach stdout)
+fi
+
+#43434 default debug
+if [[ -z ${!FLAT_DEBUG@} ]]; then
+	FLAT_DEBUG=":error:log"
+fi
+
+#44295 role devel
+if [[ -z ${FIT_INSTALLATION_ROLE} ]]; then
+	FIT_INSTALLATION_ROLE=devel
+fi
+echo "Installation role (\$server/role): $FIT_INSTALLATION_ROLE"
+
+# dynamic env vars
+declare -a ENV_ARGS
+for V in ${!FIT_@} ${!FLAT_@}; do
+	ENV_ARGS+=(-e "$V=${!V}")
+done
+
+echo
+echo starting FLAT runner with FLAT hash "$TAG"
+echo -e listening on:'\033[1m' http://localhost:$port '\033[0m'
+echo
+
+if [[ -n ${FLAT_NOSTART} ]]; then
+	echo "not starting flat container (test-only)"
+	exit 0
+fi
+
+docker run --rm -p $port:8080 \
+    "${SITE_VOLUME[@]}" \
+    --name "${DOCKERNAME}" \
+    ${FLAT_OPTIONS} \
+    --attach stderr \
+    "${LOG_ARGS[@]}" \
+    "${ENV_ARGS[@]}" \
+    ${IMAGE}:${TAG}
