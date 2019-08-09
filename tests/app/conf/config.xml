@@ -1,0 +1,6 @@
+<config>
+  <flat>
+    <definition src="../swagger.yaml" />
+    <validation request="true" />
+  </flat>
+</config>

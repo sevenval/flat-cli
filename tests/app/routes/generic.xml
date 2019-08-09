@@ -1,0 +1,4 @@
+<flow>
+<set-header name="Status" value="200" />
+<echo>API fallback</echo>
+</flow>

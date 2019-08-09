@@ -1,0 +1,7 @@
+<flow>
+<set-header name="Status" value="500 Error - fallback flow should never get started" />
+
+<echo>
+  Fallback flow should not be started!
+</echo>
+</flow>
