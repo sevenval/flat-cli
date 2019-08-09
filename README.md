@@ -1,11 +1,11 @@
-# FLAT cli
+# FLAT CLI
 
 This repository contains the `flat` command line interface.
 
 It is a shell wrapper that uses the docker image
 [`sevenvaltechnologies/flatrunner`](https://hub.docker.com/r/sevenvaltechnologies/flatrunner).
 
-Documentation on FLAT can be found at [sevenval/flat-docs](https://github.com/sevenval/flat-docs)
+Documentation on FLAT can be found at [sevenval/flat-docs](https://github.com/sevenval/flat-docs).
 
 ## Installation
 
