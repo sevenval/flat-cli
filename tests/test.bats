@@ -40,14 +40,14 @@ cd "$BATS_TEST_DIRNAME"
 	run env FLAT_NOSTART=1 ../../flat start -p $PORT
 
 	echo "$output"
-	[[ ${lines[0]} =~ ^'Using site directory: '.*'/tests/app'$ ]]
+	[[ ${lines[0]} =~ ^'Using directory: '.*'/tests/app'$ ]]
 }
 
 @test "flat site w/ dir" {
 	run env FLAT_NOSTART=1 ../flat start -p $PORT app
 
 	echo "$output"
-	[[ ${lines[0]} =~ ^'Using site directory: '.*'/tests/app'$ ]]
+	[[ ${lines[0]} =~ ^'Using directory: '.*'/tests/app'$ ]]
 }
 
 @test "flat w/ forbidden dir" {
@@ -70,7 +70,7 @@ cd "$BATS_TEST_DIRNAME"
 
 	echo "$output"
 	[[ $status -eq 67 ]]
-	[[ "${lines[0]}" =~ ^"No FLAT site found in ".*"/tests: create conf/config.xml to start"$ ]]
+	[[ "${lines[0]}" =~ ^"No FLAT app found in ".*"/tests: create swagger.yaml to start"$ ]]
 }
 
 @test "start flat" {

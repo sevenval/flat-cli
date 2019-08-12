@@ -111,11 +111,11 @@ if [[ $cmd == stop ]]; then
 	exec docker stop ${DOCKERNAME} > /dev/null
 fi
 
-if [[ -f "$DIR"/conf/config.xml ]]; then
+if [[ -f "$DIR"/conf/config.xml || -f "$DIR"/swagger.yaml ]]; then
   SITE_VOLUME=( -v "${DIR}":/app:cached )
-  echo "Using site directory: $DIR"
+  echo "Using directory: $DIR"
 else
-  echo "No FLAT site found in $DIR: create conf/config.xml to start"
+  echo "No FLAT app found in $DIR: create swagger.yaml to start"
   exit 67
 fi
 
