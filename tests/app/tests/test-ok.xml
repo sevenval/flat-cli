@@ -1,0 +1,5 @@
+<flat-test>
+  <template out="$foo">[ 1, 2, 3  ]</template>
+  <template src="../templates/good.tmpl" out="$res"/>
+  <assert>[ [ "$res", "1:2:3", "join in template" ] ]</assert>
+</flat-test>

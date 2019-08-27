@@ -1,0 +1,3 @@
+<flat-test>
+  <assert>[ [ "true()", false, "should fail" ] ]</assert>
+</flat-test>
