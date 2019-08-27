@@ -141,6 +141,20 @@ cd "$BATS_TEST_DIRNAME"
 	[[ $output == $'Template contains errors:\nTemplate error in line 1: Invalid template command: bad' ]]
 }
 
+@test "flat test ok" {
+	../flat test app/tests/test-ok.xml app
+}
+
+@test "flat test fail" {
+	run ../flat test app/tests/test-fail.xml app
+	[[ $status -eq 1 ]]
+}
+
+@test "flat test ok + fail" {
+	run ../flat test app/tests/test-fail.xml app/tests/test-ok.xml app
+	[[ $status -eq 1 ]]
+}
+
 
 function waitForStart() {
 	NAME=${1:-"$CONTAINER"}
