@@ -2,16 +2,17 @@
 
 set -e
 
-IMAGE=sevenvaltechnologies/flatrunner
+IMAGE=${FLAT_IMAGE:-sevenvaltechnologies/flatrunner}
 
 usage() {
   cat <<EOF
-Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ -a ] [ DIRECTORY ]
+Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ -a ] [ TESTFILE ... ] [ DIRECTORY ]
 
 commands:
 
 start             start flat (uses -p, -d, -a and DIRECTORY)
 stop              stop a running flat instance (uses -p and DIRECTORY)
+test              run a flat-test file (uses -d, TESTFILE and DIRECTORY)
 pull              pull latest flatrunner docker image and exit
 check-template    check a template from the command line
 
@@ -21,6 +22,11 @@ start params:
 -a      Output access logs in addition to error logs
 DIR     FLAT app directory, default: .
 
+test params:
+-d       Debug parameters, default: *:error:log
+TESTFILE FLAT test flow(s)
+DIR      FLAT app directory, default: .
+
 stop params:
 -p      Listen port, default: 8080
 DIR     FLAT app directory, default: .
@@ -29,6 +35,18 @@ check-template params:
 FILE    template file
 
 EOF
+}
+
+realPath() {
+	d="$(dirname "$1")"
+	f="$(basename "$1")"
+	if cd "$d" 2>/dev/null && [ -f "$f" ]; then
+		echo `pwd`/$f
+		cd - >/dev/null
+	else
+		echo "File '$1' not found or unreadable" >&2
+		exit 66
+	fi
 }
 
 realDir() {
@@ -52,6 +70,7 @@ cmd=
 case "$1" in
 	stop) cmd=stop; shift ;;
 	start) cmd=start; shift ;;
+	test) cmd=test; access=1; shift ;;
 	pull) exec docker pull ${IMAGE}:${TAG};;
 	check-template)
 		file="${2:?"template file missing"}"
@@ -96,13 +115,39 @@ done
 
 shift $((OPTIND-1))
 
-if [[ "$#" = 0 ]]; then
-  DIR="`pwd`"
-elif [[ "$#" != 1 ]]; then
+PORT_ARGS=(-p $port:8080)
+declare -a TESTFILES
+
+if [[ $[ $# >= 1 ] && "$cmd" = "test" ]]; then
+
+  while [ $# -gt  1 ]; do
+    TESTFILE="$(realPath "$1")"
+    TESTFILES+=("$TESTFILE")
+    shift
+  done
+  if [ -d "$1" ]; then
+    DIR="$(realDir "$1")"
+  else
+    TESTFILE="$(realPath "$1")"
+    TESTFILES+=("$TESTFILE")
+    DIR="$(realDir "")"
+  fi
+  i=$[ ${#TESTFILES[@]} - 1 ]
+  while [ $i -ge 0 ]; do
+    TESTFILES[$i]="${TESTFILES[$i]##$DIR/}"
+    i=$[ $i - 1 ]
+  done
+  ENTRYPOINT=(--entrypoint flat-test )
+  port=`basename "${TESTFILES[0]}"`
+  unset PORT_ARGS
+  QUIET=1
+elif [[ $# = 0 ]]; then
+  DIR="$(pwd)"
+elif [[ $# != 1 ]]; then
   usage
   exit 66
 else
-  DIR="`realDir "$1"`"
+  DIR="$(realDir "$1")"
 fi
 DOCKERNAME="flat-$(basename "$DIR" | tr -cd '[a-zA-Z0-9-_]')-$port"
 
@@ -113,7 +158,7 @@ fi
 
 if [[ -f "$DIR"/conf/config.xml || -f "$DIR"/swagger.yaml ]]; then
   SITE_VOLUME=( -v "${DIR}":/app:cached )
-  echo "Using directory: $DIR"
+  [ -z "$QUIET" ] && echo "Using directory: $DIR"
 else
   echo "No FLAT app found in $DIR: create swagger.yaml to start"
   exit 67
@@ -132,7 +177,9 @@ fi
 if [[ -z ${FIT_INSTALLATION_ROLE} ]]; then
 	FIT_INSTALLATION_ROLE=devel
 fi
-echo "Installation role (\$server/role): $FIT_INSTALLATION_ROLE"
+if [ -z "$QUIET" ]; then
+  echo "Installation role (\$server/role): $FIT_INSTALLATION_ROLE"
+fi
 
 # dynamic env vars
 declare -a ENV_ARGS
@@ -140,21 +187,32 @@ for V in ${!FIT_@} ${!FLAT_@}; do
 	ENV_ARGS+=(-e "$V=${!V}")
 done
 
-echo
-echo starting FLAT runner with FLAT hash "$TAG"
-echo -e listening on:'\033[1m' http://localhost:$port '\033[0m'
-echo
+# dynamic file arguments
+declare -a FILE_ARGS
+for V in ${TESTFILES[@]}; do
+	FILE_ARGS+=("$V")
+done
+
+if [ -z "$QUIET" ]; then
+  echo
+  echo starting FLAT runner with FLAT hash "$TAG"
+  echo -e listening on:'\033[1m' http://localhost:$port '\033[0m'
+  echo
+fi
 
 if [[ -n ${FLAT_NOSTART} ]]; then
 	echo "not starting flat container (test-only)"
 	exit 0
 fi
 
-docker run --rm -p $port:8080 \
+docker run --rm  \
+    "${PORT_ARGS[@]}" \
     "${SITE_VOLUME[@]}" \
     --name "${DOCKERNAME}" \
     ${FLAT_OPTIONS} \
     --attach stderr \
     "${LOG_ARGS[@]}" \
     "${ENV_ARGS[@]}" \
-    ${IMAGE}:${TAG}
+    "${ENTRYPOINT[@]}" \
+    ${IMAGE}:${TAG} \
+    "${FILE_ARGS[@]}"
