@@ -6,11 +6,11 @@ IMAGE=${FLAT_IMAGE:-sevenvaltechnologies/flatrunner}
 
 usage() {
   cat <<EOF
-Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ -a ] [ TESTFILE ... ] [ DIRECTORY ]
+Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ TESTFILE ... ] [ DIRECTORY ]
 
 commands:
 
-start             start flat (uses -p, -d, -a and DIRECTORY)
+start             start flat (uses -p, -d and DIRECTORY)
 stop              stop a running flat instance (uses -p and DIRECTORY)
 test              run a flat-test file (uses -d, TESTFILE and DIRECTORY)
 pull              pull latest flatrunner docker image and exit
@@ -19,7 +19,6 @@ check-template    check a template from the command line
 start params:
 -p      Listen port, default: 8080
 -d      Debug parameters, default: *:error:log
--a      Output access logs in addition to error logs
 DIR     FLAT app directory, default: .
 
 test params:
@@ -64,7 +63,6 @@ if [[ -z "${TAG}" ]]; then
 fi
 
 port=8080
-access=
 cmd=
 
 case "$1" in
@@ -89,7 +87,7 @@ if [[ -z $cmd ]]; then
 	exit 64
 fi
 
-while getopts hp:d:a opt; do
+while getopts hp:d: opt; do
   case ${opt} in
     p)
        port="$OPTARG"
@@ -97,8 +95,6 @@ while getopts hp:d:a opt; do
          echo Port must be a positive decimal number >&2
          exit 64
        fi
-    ;;
-    a) access=1
     ;;
 	d)
 		FLAT_DEBUG="$OPTARG"
@@ -164,10 +160,6 @@ else
   exit 67
 fi
 
-if [[ -n ${access} ]]; then
-	LOG_ARGS=(--attach stdout)
-fi
-
 #43434 default debug
 if [[ -z ${!FLAT_DEBUG@} ]]; then
 	FLAT_DEBUG=":error:log"
@@ -205,13 +197,16 @@ if [[ -n ${FLAT_NOSTART} ]]; then
 	exit 0
 fi
 
+# server writes logs to stderr, redirect to stdout for convenience
+if [[ $cmd == start ]]; then
+	exec 2>&1
+fi
+
 docker run --rm  \
     "${PORT_ARGS[@]}" \
     "${SITE_VOLUME[@]}" \
     --name "${DOCKERNAME}" \
     ${FLAT_OPTIONS} \
-    --attach stderr \
-    "${LOG_ARGS[@]}" \
     "${ENV_ARGS[@]}" \
     "${ENTRYPOINT[@]}" \
     ${IMAGE}:${TAG} \
