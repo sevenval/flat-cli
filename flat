@@ -165,6 +165,10 @@ if [[ -z ${!FLAT_DEBUG@} ]]; then
 	FLAT_DEBUG=":error:log"
 fi
 
+#45371 config via env
+if [[ -n ${FLAT_SERVER_ROLE} ]]; then
+	FIT_INSTALLATION_ROLE="${FLAT_SERVER_ROLE}"
+fi
 #44295 role devel
 if [[ -z ${FIT_INSTALLATION_ROLE} ]]; then
 	FIT_INSTALLATION_ROLE=devel
