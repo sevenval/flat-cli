@@ -206,7 +206,7 @@ if [[ $cmd == start ]]; then
 	exec 2>&1
 fi
 
-docker run --rm  \
+MSYS_NO_PATHCONV=1 docker run --rm  \
     "${PORT_ARGS[@]}" \
     "${SITE_VOLUME[@]}" \
     --name "${DOCKERNAME}" \
