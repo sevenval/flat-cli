@@ -6,7 +6,7 @@ IMAGE=${FLAT_IMAGE:-sevenvaltechnologies/flatrunner}
 
 usage() {
   cat <<EOF
-Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ TESTFILE ... ] [ DIRECTORY ]
+Usage: "$0" COMMAND [-p PORT] [-d DEBUG] [TESTFILE ...] [DIRECTORY]
 
 commands:
 
