@@ -6,7 +6,7 @@ IMAGE=${FLAT_IMAGE:-sevenvaltechnologies/flatrunner}
 
 usage() {
   cat <<EOF
-Usage: "$0" [command] [ -p PORT ] [ -d DEBUG ] [ TESTFILE ... ] [ DIRECTORY ]
+Usage: "$0" COMMAND [-p PORT] [-d DEBUG] [-b] [TESTFILE ...] [DIRECTORY]
 
 commands:
 
@@ -19,6 +19,7 @@ check-template    check a template from the command line
 start params:
 -p      Listen port, default: 8080
 -d      Debug parameters, default: *:error:log
+-b      Use current beta release
 DIR     FLAT app directory, default: .
 
 test params:
@@ -69,7 +70,7 @@ case "$1" in
 	stop) cmd=stop; shift ;;
 	start) cmd=start; shift ;;
 	test) cmd=test; access=1; shift ;;
-	pull) exec docker pull ${IMAGE}:${TAG};;
+	pull) cmd=pull; shift ;;
 	check-template)
 		file="${2:?"template file missing"}"
 		if [[ -f $file ]]; then
@@ -87,7 +88,7 @@ if [[ -z $cmd ]]; then
 	exit 64
 fi
 
-while getopts hp:d: opt; do
+while getopts bhp:d: opt; do
   case ${opt} in
     p)
        port="$OPTARG"
@@ -103,11 +104,18 @@ while getopts hp:d: opt; do
       usage
       exit
     ;;
+    b)
+      TAG=beta
+    ;;
     *)
       usage
       exit 64
   esac
 done
+
+if [[ "$cmd" = "pull" ]]; then
+    exec docker pull ${IMAGE}:${TAG}
+fi
 
 shift $((OPTIND-1))
 
