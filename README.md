@@ -24,11 +24,11 @@ $ mv flat /usr/local/bin
 ## Usage
 
 ```
-Usage: flat [command] [ -p PORT ] [ -d DEBUG ] [ -a ] [ TESTFILE ... ] [ DIRECTORY ]
+Usage: flat COMMAND [-p PORT] [-d DEBUG] [-b] [TESTFILE ...] [DIRECTORY]
 
 commands:
 
-start             start flat (uses -p, -d, -a and DIRECTORY)
+start             start flat (uses -p, -d and DIRECTORY)
 stop              stop a running flat instance (uses -p and DIRECTORY)
 test              run a flat-test file (uses -d, TESTFILE and DIRECTORY)
 pull              pull latest flatrunner docker image and exit
@@ -37,7 +37,7 @@ check-template    check a template from the command line
 start params:
 -p      Listen port, default: 8080
 -d      Debug parameters, default: *:error:log
--a      Output access logs in addition to error logs
+-b      Use current beta release
 DIR     FLAT app directory, default: .
 
 test params:
