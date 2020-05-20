@@ -173,6 +173,8 @@ if [[ -z ${!FLAT_DEBUG@} ]]; then
 	FLAT_DEBUG=":error:log"
 fi
 
+FLAT_DEBUG_ALLOW_HEADER=true
+
 #45371 config via env
 if [[ -n ${FLAT_SERVER_ROLE} ]]; then
 	FIT_INSTALLATION_ROLE="${FLAT_SERVER_ROLE}"
