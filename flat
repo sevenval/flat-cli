@@ -189,7 +189,7 @@ fi
 
 # dynamic env vars
 declare -a ENV_ARGS
-for V in ${!FIT_@} ${!FLAT_@}; do
+for V in ${!PHP_INI_@} ${!FIT_@} ${!FLAT_@}; do
 	ENV_ARGS+=(-e "$V=${!V}")
 done
 
